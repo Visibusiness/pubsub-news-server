@@ -1,286 +1,289 @@
 ## Copyright
 
-**Nume:** Vișănescu Bogdan-Emilian  
-**Grupă:** 323 CA  
-# Server TCP/UDP cu Gestionare de Subscrieri și Wildcard-uri
+**Name:** Vișănescu Bogdan-Emilian  
+**Group:** 323 CA  
+# TCP/UDP Server with Subscription Management and Wildcards
 
-Acest proiect implementează un sistem de tip publish-subscribe, format dintr-un server și clienți TCP. Serverul gestionează conexiuni TCP și UDP, permițând clienților să se aboneze la topicuri și să primească mesaje în funcție de subscripțiile lor. Sistemul suportă wildcard-uri pentru subscripții, ceea ce permite o flexibilitate ridicată în gestionarea topicurilor.
+This project implements a publish-subscribe system consisting of a server and TCP clients. The server manages TCP and UDP connections, allowing clients to subscribe to topics and receive messages according to their subscriptions. The system supports wildcards for subscriptions, enabling high flexibility in topic management.
 
 ---
 
-## Funcționalități principale
+## Main Features
 
-1. **Gestionarea conexiunilor TCP și UDP**:
-   - Serverul ascultă pe două socket-uri: unul TCP pentru comunicarea cu clienții și unul UDP pentru primirea mesajelor de la alte surse.
+1. **TCP and UDP Connection Management**:
+   - The server listens on two sockets: one TCP for client communication and one UDP for receiving messages from other sources.
 
-2. **Subscriere și dezabonare la topicuri**:
-   - Clienții se pot abona la topicuri specifice sau folosind wildcard-uri (`+` și `*`).
-   - Clienții se pot dezabona de la topicuri, iar serverul actualizează lista de subscripții în consecință.
+2. **Subscription and Unsubscription to Topics**:
+   - Clients can subscribe to specific topics or use wildcards (`+` and `*`).
+   - Clients can unsubscribe from topics, and the server updates the subscription list accordingly.
 
-3. **Wildcard-uri pentru topicuri**:
-   - `+`: Se potrivește cu exact un segment al unui topic.
-   - `*`: Se potrivește cu zero sau mai multe segmente.
+3. **Topic Wildcards**:
+   - `+`: Matches exactly one segment of a topic.
+   - `*`: Matches zero or more segments.
 
-4. **Persistența subscripțiilor**:
-   - Subscripțiile clienților sunt păstrate chiar dacă aceștia se deconectează și se reconectează ulterior.
+4. **Subscription Persistence**:
+   - Client subscriptions are preserved even if they disconnect and later reconnect.
 
-5. **Trimiterea mesajelor**:
-   - Mesajele primite pe socket-ul UDP sunt trimise către toți clienții abonați la topicurile corespunzătoare.
+5. **Message Delivery**:
+   - Messages received on the UDP socket are forwarded to all clients subscribed to the corresponding topics.
+
 ---
 
-## Structura proiectului
+## Project Structure
 
-### Fișiere principale
+### Main Files
 
 1. **`server.cpp`**:
-   - Conține implementarea serverului, inclusiv gestionarea conexiunilor, subscripțiilor și trimiterea mesajelor.
+   - Contains the server implementation, including connection management, subscriptions, and message forwarding.
 
 2. **`tcp_client.cpp`**:
-   - Implementarea clientului TCP care permite utilizatorilor să interacționeze cu serverul.
-   - Clienții pot trimite comenzi precum `subscribe`, `unsubscribe` și `exit`.
+   - Implements the TCP client that allows users to interact with the server.
+   - Clients can send commands such as `subscribe`, `unsubscribe`, and `exit`.
 
 3. **`utils.cpp`**:
-   - Conține funcții auxiliare utilizate atât de server, cât și de client pentru trimiterea și primirea completă a datelor prin socket-uri.
+   - Contains helper functions used by both the server and the client for sending and receiving complete data over sockets.
 
 4. **`server.hpp`**:
-   - Declarațiile funcțiilor și structurilor utilizate în server.
+   - Declarations of functions and structures used in the server.
 
 5. **`tcp_client.hpp`**:
-   - Declarațiile funcțiilor și structurilor utilizate în client.
+   - Declarations of functions and structures used in the client.
 
 6. **`utils.hpp`**:
-   - Declarațiile funcțiilor auxiliare din `utils.cpp`.
+   - Declarations of helper functions from `utils.cpp`.
 
 ---
-## Funcții importante în `server.cpp`
+
+## Important Functions in `server.cpp`
 
 ### 1. `setup_server`
-Această funcție configurează socket-urile TCP și UDP și le leagă la portul specificat. Este responsabilă pentru inițializarea serverului astfel încât să poată asculta conexiuni și mesaje.
+This function configures the TCP and UDP sockets and binds them to the specified port. It initializes the server so it can listen for connections and messages.
 
-- **Pași principali**:
-  1. Creează un socket TCP folosind `socket(AF_INET, SOCK_STREAM, 0)`.
-  2. Creează un socket UDP folosind `socket(AF_INET, SOCK_DGRAM, 0)`.
-  3. Configurează adresa serverului (`struct sockaddr_in`) pentru a asculta pe toate interfețele (`INADDR_ANY`) și pe portul specificat.
-  4. Leagă socket-urile TCP și UDP la adresa configurată folosind `bind`.
-  5. Pune socket-ul TCP în modul de ascultare folosind `listen`.
+- **Main Steps**:
+  1. Create a TCP socket using `socket(AF_INET, SOCK_STREAM, 0)`.
+  2. Create a UDP socket using `socket(AF_INET, SOCK_DGRAM, 0)`.
+  3. Configure the server address (`struct sockaddr_in`) to listen on all interfaces (`INADDR_ANY`) and the specified port.
+  4. Bind both TCP and UDP sockets to the configured address using `bind`.
+  5. Put the TCP socket in listening mode using `listen`.
 
-- **Rol**:
-  - Pregătește serverul pentru a accepta conexiuni TCP și pentru a primi mesaje UDP.
+- **Role**:
+  - Prepares the server to accept TCP connections and receive UDP messages.
 
 ---
 
 ### 2. `handle_tcp`
-Această funcție gestionează conexiunile noi de la clienți pe socket-ul TCP. Este apelată atunci când serverul detectează activitate pe socket-ul TCP.
+This function handles new client connections on the TCP socket. It is called when the server detects activity on the TCP socket.
 
-- **Pași principali**:
-  1. Acceptă o conexiune nouă folosind `accept`.
-  2. Configurează socket-ul clientului pentru a permite reutilizarea adresei (`SO_REUSEADDR`) și pentru a dezactiva algoritmul Nagle (`TCP_NODELAY`).
-  3. Adaugă socket-ul clientului în setul de file descriptori activi (`FD_SET`) și actualizează valoarea maximă a file descriptorilor (`fd_max`).
+- **Main Steps**:
+  1. Accept a new connection using `accept`.
+  2. Configure the client socket to allow address reuse (`SO_REUSEADDR`) and disable Nagle’s algorithm (`TCP_NODELAY`).
+  3. Add the client socket to the active file descriptor set (`FD_SET`) and update the maximum file descriptor value (`fd_max`).
 
-- **Rol**:
-  - Permite serverului să accepte conexiuni noi de la clienți și să le gestioneze ulterior.
+- **Role**:
+  - Allows the server to accept new client connections and manage them afterward.
 
 ---
 
 ### 3. `handle_udp`
-Această funcție primește mesaje pe socket-ul UDP și le trimite către clienții abonați la topicurile corespunzătoare.
+This function receives messages on the UDP socket and forwards them to clients subscribed to the corresponding topics.
 
-- **Pași principali**:
-  1. Primește un mesaj UDP folosind `recvfrom`.
-  2. Extrage topicul din mesaj și verifică dacă există clienți abonați la topicurile care se potrivesc.
-  3. Utilizează un `std::set` pentru a evita trimiterea de mesaje duplicate către același client.
-  4. Trimite mesajul către fiecare client abonat folosind `send_all`.
+- **Main Steps**:
+  1. Receive a UDP message using `recvfrom`.
+  2. Extract the topic from the message and check if there are clients subscribed to matching topics.
+  3. Use a `std::set` to avoid sending duplicate messages to the same client.
+  4. Forward the message to each subscribed client using `send_all`.
 
-- **Rol**:
-  - Asigură livrarea mesajelor primite pe socket-ul UDP către clienții abonați.
+- **Role**:
+  - Ensures delivery of UDP messages to subscribed clients.
 
 ---
 
 ### 4. `handle_connect`
-Această funcție gestionează conectarea unui client nou sau reconectarea unui client existent.
+This function manages the connection of a new client or the reconnection of an existing client.
 
-- **Pași principali**:
-  1. Verifică dacă clientul este deja înregistrat în lista de clienți (`clients`).
-  2. Dacă clientul este nou, creează o structură `client_data_t` pentru a stoca informațiile despre client și îl adaugă în lista de clienți.
-  3. Dacă clientul este deja conectat, închide conexiunea nouă și afișează un mesaj de avertizare.
-  4. Dacă clientul este deconectat, actualizează starea acestuia și reia conexiunea.
+- **Main Steps**:
+  1. Check if the client is already registered in the `clients` list.
+  2. If it’s a new client, create a `client_data_t` structure to store client info and add it to the list.
+  3. If the client is already connected, close the new connection and display a warning.
+  4. If the client is disconnected, update its state and resume the connection.
 
-- **Rol**:
-  - Permite gestionarea atât a clienților noi, cât și a celor care se reconectează.
+- **Role**:
+  - Handles both new and reconnecting clients.
 
 ---
 
 ### 5. `handle_subscribe`
-Această funcție adaugă un client în lista de abonați pentru un topic specific.
+This function adds a client to the list of subscribers for a given topic.
 
-- **Pași principali**:
-  1. Găsește clientul în lista de clienți folosind ID-ul acestuia.
-  2. Adaugă clientul în lista de abonați pentru topicul specificat.
+- **Main Steps**:
+  1. Find the client in the `clients` list using its ID.
+  2. Add the client to the subscriber list for the specified topic.
 
-- **Rol**:
-  - Permite clienților să se aboneze la topicuri pentru a primi mesaje relevante.
+- **Role**:
+  - Allows clients to subscribe to topics in order to receive relevant messages.
 
 ---
 
 ### 6. `handle_unsubscribe`
-Această funcție elimină un client din lista de abonați pentru topicurile care se potrivesc cu pattern-ul specificat.
+This function removes a client from the subscriber list for topics that match a given pattern.
 
-- **Pași principali**:
-  1. Iterează prin toate topicurile din `topics_to_clients`.
-  2. Verifică dacă topicul curent se potrivește cu pattern-ul specificat folosind funcția `topic_matches`.
-  3. Elimină clientul din lista de abonați pentru topicurile care se potrivesc.
+- **Main Steps**:
+  1. Iterate through all topics in `topics_to_clients`.
+  2. Check if the current topic matches the specified pattern using `topic_matches`.
+  3. Remove the client from the subscriber list of matching topics.
 
-- **Rol**:
-  - Permite clienților să se dezaboneze de la topicuri.
+- **Role**:
+  - Allows clients to unsubscribe from topics.
 
 ---
 
 ### 7. `handle_exit`
-Această funcție gestionează deconectarea unui client, marcându-l ca deconectat.
+This function manages client disconnection by marking the client as disconnected.
 
-- **Pași principali**:
-  1. Găsește clientul în lista de clienți folosind ID-ul acestuia.
-  2. Marchează clientul ca deconectat și închide conexiunea.
-  3. Elimină socket-ul clientului din setul de file descriptori activi (`FD_CLR`).
+- **Main Steps**:
+  1. Find the client in the `clients` list using its ID.
+  2. Mark the client as disconnected and close the connection.
+  3. Remove the client socket from the active file descriptor set (`FD_CLR`).
 
-- **Rol**:
-  - Asigură gestionarea corectă a deconectării clienților.
+- **Role**:
+  - Ensures proper management of client disconnections.
 
 ---
 
 ### 8. `run_server`
-Aceasta este bucla principală a serverului care gestionează evenimentele de pe socket-uri și stdin.
+This is the server’s main loop that manages socket and stdin events.
 
-- **Pași principali**:
-  1. Inițializează setul de file descriptori activi și așteaptă evenimente folosind `select`.
-  2. Verifică dacă există activitate pe socket-ul TCP, socket-ul UDP sau stdin.
-  3. Apelează funcțiile corespunzătoare (`handle_tcp`, `handle_udp`, `handle_clients`) pentru a gestiona evenimentele detectate.
-  4. Permite oprirea serverului prin comanda `exit` introdusă în stdin.
+- **Main Steps**:
+  1. Initialize the set of active file descriptors and wait for events using `select`.
+  2. Check for activity on the TCP socket, UDP socket, or stdin.
+  3. Call the corresponding functions (`handle_tcp`, `handle_udp`, `handle_clients`) to handle detected events.
+  4. Allows the server to stop via the `exit` command entered in stdin.
 
-- **Rol**:
-  - Coordonează toate activitățile serverului, inclusiv gestionarea conexiunilor și procesarea mesajelor.
+- **Role**:
+  - Coordinates all server activities, including connection management and message processing.
 
 ---
 
-## Funcții importante în `tcp_client.cpp`
+## Important Functions in `tcp_client.cpp`
 
 ### 1. `setup_connection`
-Această funcție configurează conexiunea TCP cu serverul. Clientul trimite un mesaj de tip `CONNECT` pentru a se înregistra pe server.
+This function sets up the TCP connection with the server. The client sends a `CONNECT` message to register with the server.
 
-- **Pași principali**:
-  1. Creează un socket TCP și se conectează la server folosind `connect`.
-  2. Trimite un mesaj de tip `CONNECT` către server pentru a se înregistra.
+- **Main Steps**:
+  1. Create a TCP socket and connect to the server using `connect`.
+  2. Send a `CONNECT` message to the server to register.
 
-- **Rol**:
-  - Permite clientului să se conecteze la server și să se înregistreze.
+- **Role**:
+  - Allows the client to connect and register with the server.
 
 ---
 
 ### 2. `handle_server_message`
-Această funcție primește și procesează mesajele trimise de server. Mesajele sunt afișate utilizatorului.
+This function receives and processes messages sent by the server. Messages are displayed to the user.
 
-- **Pași principali**:
-  1. Primește mesajele de la server folosind `recv_all`.
-  2. Procesează mesajele primite și le afișează utilizatorului.
+- **Main Steps**:
+  1. Receive messages from the server using `recv_all`.
+  2. Process received messages and display them to the user.
 
-- **Rol**:
-  - Asigură comunicarea între server și client.
+- **Role**:
+  - Ensures communication between server and client.
 
 ---
 
 ### 3. `handle_user_input`
-Această funcție gestionează comenzile introduse de utilizator.
+This function handles commands entered by the user.
 
-- **Comenzi suportate**:
-  - `subscribe <topic>`: Abonează clientul la un topic.
-  - `unsubscribe <topic>`: Dezabonează clientul de la un topic.
-  - `exit`: Închide conexiunea cu serverul.
+- **Supported Commands**:
+  - `subscribe <topic>`: Subscribes the client to a topic.
+  - `unsubscribe <topic>`: Unsubscribes the client from a topic.
+  - `exit`: Closes the connection with the server.
 
-- **Pași principali**:
-  1. Citește comanda introdusă de utilizator.
-  2. Trimite comanda către server pentru procesare.
+- **Main Steps**:
+  1. Read the command entered by the user.
+  2. Send the command to the server for processing.
 
-- **Rol**:
-  - Permite utilizatorului să interacționeze cu serverul.
+- **Role**:
+  - Allows the user to interact with the server.
 
 ---
 
 ### 4. `run_tcp_client`
-Aceasta este bucla principală a clientului care gestionează interacțiunea cu serverul și utilizatorul.
+This is the client’s main loop that manages interaction with the server and the user.
 
-- **Pași principali**:
-  1. Așteaptă evenimente de la server sau de la utilizator.
-  2. Procesează mesajele primite de la server.
-  3. Procesează comenzile introduse de utilizator.
+- **Main Steps**:
+  1. Wait for events from the server or the user.
+  2. Process messages received from the server.
+  3. Process commands entered by the user.
 
-- **Rol**:
-  - Coordonează toate activitățile clientului, inclusiv comunicarea cu serverul și interacțiunea cu utilizatorul.
+- **Role**:
+  - Coordinates all client activities, including communication with the server and user interaction.
 
-## Wildcard-uri pentru topicuri
+---
 
-### `+` (Wildcard pentru un segment)
-- Se potrivește cu exact un segment al unui topic.
-- Exemplu:
-  - Subscriere: `upb/+/temperature`
-  - Mesaje care se potrivesc:
+## Topic Wildcards
+
+### `+` (Single-Segment Wildcard)
+- Matches exactly one segment of a topic.
+- Example:
+  - Subscription: `upb/+/temperature`
+  - Matching messages:
     - `upb/ec/temperature`
     - `upb/room/temperature`
-  - Mesaje care **nu** se potrivesc:
+  - Non-matching messages:
     - `upb/ec/room/temperature`
 
-### `*` (Wildcard pentru zero sau mai multe segmente)
-- Se potrivește cu zero sau mai multe segmente.
-- Exemplu:
-  - Subscriere: `upb/*`
-  - Mesaje care se potrivesc:
+### `*` (Multi-Segment Wildcard)
+- Matches zero or more segments.
+- Example:
+  - Subscription: `upb/*`
+  - Matching messages:
     - `upb/ec/temperature`
     - `upb/ec/room/temperature`
     - `upb`
 
 ---
 
-## Structuri de date
+## Data Structures
 
-### 1. `clients` (în `server.cpp`)
-- Tip: `std::map<std::string, client_data_t *>`
-- Descriere: Stochează informațiile despre clienți, indexate după ID-ul clientului.
+### 1. `clients` (in `server.cpp`)
+- Type: `std::map<std::string, client_data_t *>`
+- Description: Stores client information indexed by client ID.
 
-### 2. `topics_to_clients` (în `server.cpp`)
-- Tip: `std::map<std::string, std::vector<client_data_t *>>`
-- Descriere: Stochează lista de clienți abonați pentru fiecare topic.
-
----
-
-## Fluxul principal al serverului
-
-1. **Inițializare**:
-   - Serverul configurează socket-urile TCP și UDP și începe să asculte pentru conexiuni și mesaje.
-
-2. **Gestionarea conexiunilor**:
-   - Clienții se conectează prin TCP, iar serverul le gestionează subscripțiile.
-
-3. **Primirea mesajelor**:
-   - Mesajele primite pe socket-ul UDP sunt procesate și trimise către clienții abonați.
-
-4. **Deconectarea clienților**:
-   - Clienții se pot deconecta, iar serverul păstrează subscripțiile lor pentru o eventuală reconectare.
-
-5. **Închiderea serverului**:
-   - Serverul poate fi oprit prin comanda `exit` introdusă în stdin.
+### 2. `topics_to_clients` (in `server.cpp`)
+- Type: `std::map<std::string, std::vector<client_data_t *>>`
+- Description: Stores the list of clients subscribed to each topic.
 
 ---
 
-## Fluxul principal al clientului
+## Main Server Flow
 
-1. **Inițializare**:
-   - Clientul configurează conexiunea TCP cu serverul.
+1. **Initialization**:
+   - The server sets up TCP and UDP sockets and starts listening for connections and messages.
 
-2. **Interacțiunea cu utilizatorul**:
-   - Clientul așteaptă comenzi de la utilizator (`subscribe`, `unsubscribe`, `exit`).
+2. **Connection Management**:
+   - Clients connect via TCP, and the server manages their subscriptions.
 
-3. **Primirea mesajelor**:
-   - Clientul primește mesaje de la server și le afișează utilizatorului.
+3. **Message Reception**:
+   - Messages received on the UDP socket are processed and forwarded to subscribed clients.
 
-4. **Închiderea conexiunii**:
-   - Clientul trimite un mesaj de tip `EXIT` către server și închide conexiunea.
+4. **Client Disconnection**:
+   - Clients can disconnect, and the server preserves their subscriptions for potential reconnection.
 
+5. **Server Shutdown**:
+   - The server can be stopped via the `exit` command entered in stdin.
+
+---
+
+## Main Client Flow
+
+1. **Initialization**:
+   - The client sets up a TCP connection with the server.
+
+2. **User Interaction**:
+   - The client waits for user commands (`subscribe`, `unsubscribe`, `exit`).
+
+3. **Message Reception**:
+   - The client receives messages from the server and displays them to the user.
+
+4. **Connection Closure**:
+   - The client sends an `EXIT` message to the server and closes the connection.
