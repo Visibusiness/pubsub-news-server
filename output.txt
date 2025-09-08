@@ -1,0 +1,71 @@
+rm -rf server subscriber
+g++ -o server server.cpp utils.cpp -Wall -Werror -Wno-error=unused-variable -g
+g++ -o subscriber tcp_client.cpp utils.cpp -Wall -Werror -Wno-error=unused-variable -g
+rm -rf server subscriber
+Compiling
+Starting the server
+Starting subscriber C1
+Generating one message for each topic
+Subscribing C1 to all topics
+Generating one message for each topic
+Disconnecting subscriber C1
+Generating one message for each topic
+Starting subscriber C1
+Starting another subscriber with ID C1
+Generating one message for each topic 30 times in a row
+Starting subscriber C2
+Subscribing C2 to topic a_non_negative_int
+Subscribing C2 to topics +/ec/100/pressure
+Subscribing C2 to topics upb/+/100/pressure
+Subscribing C2 to topics upb/ec/100/+
+Subscribing C2 to topics */pressure
+Subscribing C2 to topics upb/precis/elevator/*/floor
+Subscribing C2 to topics upb/precis/*
+Subscribing C2 to topics *
+Subscribing C2 to topics upb/+/100/+
+Subscribing C2 to topics upb/+/100/*
+Subscribing C2 to topics */100/+
+Subscribing C2 to topics */100/*
+Subscribing C2 to topics upb/precis/100/+
+Subscribing C2 to topics upb/precis/100/*
+Disconnecting subscriber C2
+Unsubscribing C1 from some topics
+Error: C1 not unsubscribed from a topic
+Generating one message for each topic
+Error: C1 output should contain [a_negative_subunitary_float - FLOAT - -0.042], is actually [float_seventeen - FLOAT - 17.000000]
+Error: C1 output should contain [ana_string_announce - STRING - Ana are mere], is actually [float_minus_seventeen - FLOAT - -17.000000]
+Error: C1 output should contain [huge_string - STRING - abcdefghijklmnopqrstuvwxyz], is actually [a_strange_float - FLOAT - 1234.432100]
+Disconnecting subscriber C1
+Starting subscriber C1
+Checking if the subscriptions are still correct when reconnecting
+Generating one message for each topic
+Error: C1 output should contain [a_negative_subunitary_float - FLOAT - -0.042], is actually [float_seventeen - FLOAT - 17.000000]
+Error: C1 output should contain [ana_string_announce - STRING - Ana are mere], is actually [float_minus_seventeen - FLOAT - -17.000000]
+Error: C1 output should contain [huge_string - STRING - abcdefghijklmnopqrstuvwxyz], is actually [a_strange_float - FLOAT - 1234.432100]
+Stopping the server
+
+RESULTS
+-------
+compile...............................................passed
+server_start..........................................passed
+c1_start_1............................................passed
+data_unsubscribed.....................................passed
+c1_subscribe_all......................................passed
+data_subscribed.......................................passed
+c1_stop_1.............................................passed
+c1_restart............................................passed
+data_no_clients.......................................passed
+same_id...............................................passed
+quick_flow............................................passed
+c2_start..............................................passed
+c2_subscribe..........................................passed
+c2_stop...............................................passed
+c2_subscribe_plus_wildcard............................passed
+c2_subscribe_star_wildcard............................passed
+c2_subscribe_compound_wildcard........................passed
+c2_subscribe_wildcard_set_inclusion...................passed
+c1_unsubscribe_partial................................failed
+c1_stop_2.............................................passed
+c1_start_2............................................passed
+c1_check_subscriptions................................failed
+server_stop...........................................passed
